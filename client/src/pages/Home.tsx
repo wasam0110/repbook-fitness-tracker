@@ -8,7 +8,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useTracker } from "@/lib/useTracker";
 import { saveLocalProgressPhotoBlob } from "@/lib/local-data";
 import { OwnerChangedError, runForActiveOwner } from "@/lib/owner-guard";
-import { getExercises, getPreviousPerformance, formatDate, formatNumber, formatWeight, todayAsLocalDate } from "@/lib/tracker-utils";
+import { getExercises, getPreviousPerformance, formatDate, formatNumber, formatWeight, summarizeWorkoutCalories, todayAsLocalDate } from "@/lib/tracker-utils";
 import { mergeTrackerSnapshots, TrackerSnapshotSchema, type BodyWeightEntry, type MeasurementEntry, type ProgressPhoto, type WorkoutSession } from "@shared/tracker";
 import { ArrowDownToLine, ArrowUpFromLine, CalendarDays, Check, ChevronRight, Cloud, Dumbbell, History, Home as HomeIcon, LoaderCircle, LogOut, Plus, Scale, TrendingUp, WifiOff, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -76,7 +76,12 @@ function Home() {
   const measurements = useMemo(() => tracker.snapshot.measurements.filter(item => !item.deletedAt).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt)), [tracker.snapshot.measurements]);
   const photos = useMemo(() => tracker.snapshot.photos.filter(item => !item.deletedAt).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt)), [tracker.snapshot.photos]);
   const exercises = useMemo(() => getExercises(tracker.snapshot), [tracker.snapshot]);
-  const weeklyWorkouts = workouts.filter(item => item.date >= mondayOf(todayAsLocalDate()));
+  const todayDate = todayAsLocalDate();
+  const weekStartDate = mondayOf(todayDate);
+  const monthStartDate = `${todayDate.slice(0, 7)}-01`;
+  const weeklyWorkouts = workouts.filter(item => item.date >= weekStartDate && item.date <= todayDate);
+  const weeklyCalories = summarizeWorkoutCalories(workouts, weekStartDate, todayDate);
+  const monthlyCalories = summarizeWorkoutCalories(workouts, monthStartDate, todayDate);
   const latestWeight = weighIns[0] ?? null;
   const previousWeight = weighIns[1] ?? null;
   const weightDelta = latestWeight && previousWeight
@@ -331,6 +336,11 @@ function Home() {
               <article className="progress-stat-card"><div className="eyebrow">LATEST BODY WEIGHT</div><strong>{latestWeight ? <>{formatNumber(latestWeight.weight)}<small> {latestWeight.unit}</small></> : "—"}</strong><p>{latestWeight ? `Recorded ${formatDate(latestWeight.date)}` : "Add a weigh-in to start the line."}</p></article>
               <article className="progress-stat-card accent-stat"><div className="eyebrow">WORKOUT SESSIONS</div><strong>{workouts.length.toString().padStart(2, "0")}</strong><p>Saved sessions to compare over time.</p></article>
               <article className="progress-stat-card"><div className="eyebrow">EXERCISES ON FILE</div><strong>{new Set(workouts.flatMap(session => session.entries.map(entry => entry.exerciseId))).size.toString().padStart(2, "0")}</strong><p>Movements you've recorded.</p></article>
+            </section>
+            <section className="calorie-summary-grid" aria-label="Estimated calorie summaries">
+              <article className="calorie-summary-card"><div className="eyebrow">ESTIMATED CALORIES · THIS WEEK</div><strong>{weeklyCalories.sessionCount ? <>≈ {formatNumber(weeklyCalories.totalKcal)}<small> kcal</small></> : "—"}</strong><p>{weeklyCalories.sessionCount ? `From ${weeklyCalories.sessionCount} workout estimate${weeklyCalories.sessionCount === 1 ? "" : "s"} · Monday to today` : "No saved calorie estimates this week."}</p></article>
+              <article className="calorie-summary-card calorie-summary-month"><div className="eyebrow">ESTIMATED CALORIES · THIS MONTH</div><strong>{monthlyCalories.sessionCount ? <>≈ {formatNumber(monthlyCalories.totalKcal)}<small> kcal</small></> : "—"}</strong><p>{monthlyCalories.sessionCount ? `From ${monthlyCalories.sessionCount} workout estimate${monthlyCalories.sessionCount === 1 ? "" : "s"} · month to date` : "No saved calorie estimates this month."}</p></article>
+              <p className="calorie-summary-footnote">Approximate estimates only; workouts without a duration and dated body-weight reading are excluded.</p>
             </section>
             <section className="chart-grid">
               <article className="paper-panel chart-panel"><header className="panel-heading"><div><div className="eyebrow">BODY WEIGHT</div><h2>Trend over time</h2></div><span className="chart-tag">{latestWeight?.unit ?? "kg"}</span></header>{weighIns.length > 0 ? <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><AreaChart data={[...weighIns].reverse().map(item => ({ ...item, displayWeight: kgValue(item.weight, item.unit, latestWeight?.unit ?? "kg"), label: formatDate(item.date, { month: "short", day: "numeric" }) }))} margin={{ top: 12, right: 10, left: -16, bottom: 0 }}><defs><linearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d97706" stopOpacity={0.23} /><stop offset="95%" stopColor="#d97706" stopOpacity={0.01} /></linearGradient></defs><CartesianGrid stroke="#e7dfd1" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#82796e", fontSize: 11 }} minTickGap={24} /><YAxis domain={["dataMin - 2", "dataMax + 2"]} tickLine={false} axisLine={false} tick={{ fill: "#82796e", fontSize: 11 }} width={44} /><Tooltip formatter={(value: number) => [`${formatNumber(value)} ${latestWeight?.unit ?? "kg"}`, "Weight"]} contentStyle={{ borderRadius: 10, border: "1px solid #e7dfd1", background: "#fffcf5", fontSize: 12 }} /><Area type="monotone" dataKey="displayWeight" stroke="#d97706" strokeWidth={2.5} fill="url(#weightFill)" dot={{ r: 5, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 6, fill: "#d97706", stroke: "#fff" }} /></AreaChart></ResponsiveContainer></div> : <EmptyPanel icon={<Scale size={20} />} title={weighIns.length ? "One dot begins a line" : "Start with a weigh-in"} body="Add a dated weigh-in to see it plotted here; more readings will reveal the trend." />}<div className="chart-panel-foot"><span>{weighIns.length} reading{weighIns.length === 1 ? "" : "s"} logged</span>{weightDelta !== null && <span className={weightDelta <= 0 ? "trend-down" : "trend-up"}>{weightDelta > 0 ? "+" : ""}{formatNumber(weightDelta)} {previousWeight?.unit} since last entry</span>}</div></article>

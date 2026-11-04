@@ -63,6 +63,23 @@ export function getBodyWeightKgAtOrBefore(date: string, weighIns: BodyWeightEntr
   return entry.unit === "kg" ? entry.weight : entry.weight * 0.45359237;
 }
 
+export function summarizeWorkoutCalories(
+  workouts: WorkoutSession[],
+  startDate: string,
+  endDate: string,
+): { totalKcal: number; sessionCount: number } {
+  const estimatedSessions = workouts.filter(session =>
+    !session.deletedAt &&
+    session.date >= startDate &&
+    session.date <= endDate &&
+    session.calorieEstimateKcal !== null,
+  );
+  return {
+    totalKcal: estimatedSessions.reduce((sum, session) => sum + (session.calorieEstimateKcal ?? 0), 0),
+    sessionCount: estimatedSessions.length,
+  };
+}
+
 function weekStart(date: string): string {
   const parsed = new Date(`${date}T12:00:00`);
   const day = (parsed.getDay() + 6) % 7;

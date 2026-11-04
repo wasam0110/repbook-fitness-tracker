@@ -74,9 +74,11 @@
 
 * { box-sizing: border-box; }
 html { min-width: 320px; background: var(--paper); }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--paper); color: var(--ink); }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--paper); color: var(--ink); cursor: default; }
 button, input, select, textarea { font: inherit; }
 button { color: inherit; }
+input, textarea, [contenteditable="true"] { cursor: text; }
+a { cursor: pointer; }
 button:not(:disabled), select:not(:disabled) { cursor: pointer; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #d9770666; outline-offset: 2px; }
 ::selection { background: #f3d8ad; color: #292524; }
@@ -276,6 +278,14 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .progress-stat-card > strong small { font-size: 14px; }
 .progress-stat-card > p { margin: 7px 0 0; color: #8a7f73; font-size: 9px; }
 .accent-stat { border-color: #d7c2a2; background: #eee2cf; }
+.calorie-summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.calorie-summary-card { min-width: 0; border: 1px solid #e2d4bf; border-radius: 13px; padding: 14px 16px; background: #f4ecde; }
+.calorie-summary-month { background: #fffdf8; }
+.calorie-summary-card .eyebrow { color: #8d785d; }
+.calorie-summary-card > strong { display: block; margin-top: 9px; color: #493d31; font-family: "Roboto Slab", Georgia, serif; font-size: 26px; font-weight: 500; letter-spacing: -.035em; line-height: 1; }
+.calorie-summary-card > strong small { font-family: "DM Sans", Arial, sans-serif; font-size: 12px; letter-spacing: 0; }
+.calorie-summary-card > p { margin: 7px 0 0; color: #897d6e; font-size: 9px; line-height: 1.5; }
+.calorie-summary-footnote { grid-column: 1 / -1; margin: -3px 2px 0; color: #978b7b; font-size: 8px; line-height: 1.5; }
 .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .chart-panel { display: flex; min-width: 0; min-height: 345px; flex-direction: column; }
 .chart-tag { border: 1px solid #e7ddce; border-radius: 7px; padding: 5px 8px; color: #8d7153; font-size: 9px; font-weight: 700; }
@@ -478,6 +488,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .history-set-chips { justify-content: flex-start; padding-left: 14px; }
   .history-set-chips span { padding: 4px 5px; font-size: 7px; }
   .progress-overview-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .calorie-summary-grid { grid-template-columns: 1fr; gap: 8px; margin-bottom: 10px; }
+  .calorie-summary-card { padding: 12px; }
+  .calorie-summary-card > strong { margin-top: 7px; font-size: 24px; }
   .progress-stat-card { min-height: 94px; padding: 11px; }
   .progress-stat-card:first-child { grid-column: 1/-1; }
   .progress-stat-card > strong { margin-top: 7px; font-size: 24px; }
