@@ -1,4 +1,4 @@
-import type { TrackerSnapshot, WorkoutSession } from "@shared/tracker";
+import type { BodyWeightEntry, TrackerSnapshot, WorkoutSession } from "@shared/tracker";
 
 export type ExerciseOption = {
   id: string;
@@ -53,6 +53,14 @@ export function formatWeight(weight: number, unit: "kg" | "lb"): string {
 
 export function formatNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+export function getBodyWeightKgAtOrBefore(date: string, weighIns: BodyWeightEntry[]): number | null {
+  const entry = [...weighIns]
+    .filter(item => !item.deletedAt && item.date <= date)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt))[0];
+  if (!entry) return null;
+  return entry.unit === "kg" ? entry.weight : entry.weight * 0.45359237;
 }
 
 function weekStart(date: string): string {

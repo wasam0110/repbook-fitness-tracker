@@ -44,10 +44,20 @@ export const WorkoutSessionSchema = z.object({
   id: recordId,
   date: calendarDate,
   note: z.string().max(500),
-  entries: z.array(WorkoutEntrySchema).min(1).max(100),
+  activityType: z.enum(["strength", "cardio"]).default("strength"),
+  durationMinutes: z.number().int().min(1).max(1440).nullable().default(null),
+  steps: z.number().int().min(0).max(200000).nullable().default(null),
+  effort: z.enum(["moderate", "vigorous"]).default("moderate"),
+  bodyWeightKgUsed: z.number().min(1).max(1000).nullable().default(null),
+  calorieEstimateKcal: z.number().int().min(0).max(250000).nullable().default(null),
+  entries: z.array(WorkoutEntrySchema).max(100),
   createdAt: isoTimestamp,
   updatedAt: isoTimestamp,
   deletedAt: isoTimestamp.nullable(),
+}).superRefine((session, context) => {
+  if (session.activityType === "strength" && session.entries.length === 0) {
+    context.addIssue({ code: "custom", path: ["entries"], message: "Strength sessions need at least one exercise." });
+  }
 });
 
 export const BodyWeightEntrySchema = z.object({
@@ -102,6 +112,23 @@ export type BodyWeightEntry = z.infer<typeof BodyWeightEntrySchema>;
 export type MeasurementEntry = z.infer<typeof MeasurementEntrySchema>;
 export type ProgressPhoto = z.infer<typeof ProgressPhotoSchema>;
 export type TrackerSnapshot = z.infer<typeof TrackerSnapshotSchema>;
+
+/** Rough gross-energy estimate; session duration, body weight, activity type, and effort are required. */
+export function estimateWorkoutCalories(
+  bodyWeightKg: number | null,
+  durationMinutes: number | null,
+  activityType: "strength" | "cardio",
+  effort: "moderate" | "vigorous",
+): number | null {
+  if (bodyWeightKg === null || durationMinutes === null || bodyWeightKg <= 0 || durationMinutes <= 0) {
+    return null;
+  }
+
+  const mets = activityType === "strength"
+    ? { moderate: 3.5, vigorous: 6 }
+    : { moderate: 4, vigorous: 7 };
+  return Math.round((mets[effort] * 3.5 * bodyWeightKg / 200) * durationMinutes);
+}
 
 export function emptyTrackerSnapshot(): TrackerSnapshot {
   return {

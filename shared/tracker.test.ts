@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   emptyTrackerSnapshot,
+  estimateWorkoutCalories,
   mergeTrackerSnapshots,
   TrackerSnapshotSchema,
+  WorkoutSessionSchema,
   type MeasurementEntry,
   type ProgressPhoto,
   type WorkoutSession,
@@ -13,6 +15,12 @@ function workout(id: string, updatedAt: string, deletedAt: string | null = null)
     id,
     date: "2026-10-23",
     note: "",
+    activityType: "strength",
+    durationMinutes: null,
+    steps: null,
+    effort: "moderate",
+    bodyWeightKgUsed: null,
+    calorieEstimateKcal: null,
     entries: [{
       id: `${id}-entry`,
       exerciseId: "default-bench-press",
@@ -94,15 +102,47 @@ describe("fitness snapshot sync", () => {
     ]);
   });
 
-  it("defaults new collections when loading an older saved snapshot", () => {
+  it("defaults new collections and session fields when loading an older saved snapshot", () => {
+    const legacyWorkout = {
+      ...workout("legacy", "2026-10-24T10:00:00.000Z"),
+      activityType: undefined,
+      durationMinutes: undefined,
+      steps: undefined,
+      effort: undefined,
+      bodyWeightKgUsed: undefined,
+      calorieEstimateKcal: undefined,
+    };
     const parsed = TrackerSnapshotSchema.parse({
       exercises: [],
-      workouts: [],
+      workouts: [legacyWorkout],
       weighIns: [],
       updatedAt: "2026-10-24T10:00:00.000Z",
     });
     expect(parsed.measurements).toEqual([]);
     expect(parsed.photos).toEqual([]);
+    expect(parsed.workouts[0]).toMatchObject({
+      activityType: "strength",
+      durationMinutes: null,
+      steps: null,
+      effort: "moderate",
+      bodyWeightKgUsed: null,
+      calorieEstimateKcal: null,
+    });
+  });
+
+  it("estimates gross calories from body weight, duration, activity, and effort", () => {
+    expect(estimateWorkoutCalories(82, 30, "cardio", "moderate")).toBe(172);
+    expect(estimateWorkoutCalories(82, 60, "strength", "vigorous")).toBe(517);
+    expect(estimateWorkoutCalories(null, 30, "cardio", "moderate")).toBeNull();
+    expect(estimateWorkoutCalories(82, null, "strength", "moderate")).toBeNull();
+  });
+
+  it("allows cardio-only sessions but rejects strength sessions without exercises", () => {
+    const { entries: _entries, ...base } = workout("cardio", "2026-10-24T10:00:00.000Z");
+    const cardio = WorkoutSessionSchema.safeParse({ ...base, activityType: "cardio", entries: [] });
+    const strength = WorkoutSessionSchema.safeParse({ ...base, activityType: "strength", entries: [] });
+    expect(cardio.success).toBe(true);
+    expect(strength.success).toBe(false);
   });
 
   it("rejects malformed timestamps, impossible dates, and unsafe photo keys", () => {

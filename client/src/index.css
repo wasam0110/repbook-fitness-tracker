@@ -254,6 +254,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .history-card-actions { display: flex; align-items: center; gap: 12px; }
 .history-set-count { color: #988b7a; font-size: 8px; font-weight: 800; letter-spacing: .09em; white-space: nowrap; }
 .history-exercises { border-top: 1px solid #eee7dd; padding: 4px 17px 8px; }
+.session-burn-summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid #eee7dd; padding: 9px 17px; color: #938575; font-size: 8px; font-weight: 700; letter-spacing: .06em; }
+.session-burn-summary strong { color: #9b5e1d; font-size: 9px; white-space: nowrap; }
 .history-exercise-row { display: grid; grid-template-columns: minmax(140px, .85fr) minmax(0, 1.4fr); align-items: center; gap: 10px; border-bottom: 1px solid #f1ece3; padding: 10px 0; }
 .history-exercise-row:last-child { border-bottom: 0; }
 .history-exercise-name { display: flex; align-items: center; gap: 8px; color: #4e4439; font-family: "Roboto Slab", Georgia, serif; font-size: 10px; }
@@ -305,6 +307,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 18px; }
 .modal-header h2 { margin: 4px 0 0; color: #3d342c; font-family: "Roboto Slab", Georgia, serif; font-size: 23px; font-weight: 500; letter-spacing: -.035em; }
 .workout-meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.session-unit-row { width: calc(50% - 7px); margin-top: 12px; }
+.session-meta-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 13px; }
+.session-meta-grid.strength-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.calorie-estimate-note { margin: 10px 0 0; border: 1px solid #ead9bc; border-radius: 8px; padding: 9px 10px; background: #f8f0e3; color: #80705e; font-size: 9px; line-height: 1.6; }
+.calorie-estimate-note strong { color: #9b5e1d; }
 .note-field { margin-top: 13px; }
 .note-field input { height: 38px; }
 .unit-switch { display: flex; height: 38px; align-items: center; border: 1px solid #e4dbce; border-radius: 8px; padding: 3px; background: #f4f0e7; }
@@ -466,6 +473,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .history-set-count { display: none; }
   .history-card-actions .text-action { font-size: 9px; }
   .history-exercises { padding: 3px 12px 6px; }
+  .session-burn-summary { flex-wrap: wrap; padding: 8px 12px; }
   .history-exercise-row { grid-template-columns: 1fr; gap: 7px; padding: 9px 0; }
   .history-set-chips { justify-content: flex-start; padding-left: 14px; }
   .history-set-chips span { padding: 4px 5px; font-size: 7px; }
@@ -486,6 +494,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .modal-sheet { width: 100%; max-height: 92vh; border-radius: 18px 18px 0 0; padding: 18px 15px calc(16px + env(safe-area-inset-bottom)); }
   .modal-header h2 { font-size: 21px; }
   .workout-meta-row { gap: 9px; }
+  .session-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .session-unit-row { width: calc(50% - 5px); }
   .composer-section-heading { margin-top: 18px; }
   .set-table-head, .set-row { grid-template-columns: 32px minmax(75px, 1fr) minmax(65px, .8fr) 27px; gap: 6px; }
   .add-set-button { margin-left: 32px; }
