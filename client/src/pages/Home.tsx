@@ -3,13 +3,14 @@ import AuthGate from "@/components/AuthGate";
 import BodyMeasurementsPanel from "@/components/tracker/BodyMeasurementsPanel";
 import ExerciseDialog, { type NewExercise } from "@/components/tracker/ExerciseDialog";
 import ProgressPhotosPanel from "@/components/tracker/ProgressPhotosPanel";
+import ProfileSettingsDialog from "@/components/tracker/ProfileSettingsDialog";
 import WorkoutComposer from "@/components/tracker/WorkoutComposer";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useTracker } from "@/lib/useTracker";
 import { saveLocalProgressPhotoBlob } from "@/lib/local-data";
 import { OwnerChangedError, runForActiveOwner } from "@/lib/owner-guard";
 import { getExercises, getPreviousPerformance, formatDate, formatNumber, formatWeight, summarizeWorkoutCalories, todayAsLocalDate } from "@/lib/tracker-utils";
-import { mergeTrackerSnapshots, TrackerSnapshotSchema, type BodyWeightEntry, type MeasurementEntry, type ProgressPhoto, type WorkoutSession } from "@shared/tracker";
+import { mergeTrackerSnapshots, TrackerSnapshotSchema, type AthleteProfile, type BodyWeightEntry, type MeasurementEntry, type ProgressPhoto, type WorkoutSession } from "@shared/tracker";
 import { ArrowDownToLine, ArrowUpFromLine, CalendarDays, Check, ChevronRight, Cloud, Dumbbell, History, Home as HomeIcon, LoaderCircle, LogOut, Plus, Scale, TrendingUp, WifiOff, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -64,12 +65,14 @@ function Home() {
   const [showComposer, setShowComposer] = useState(false);
   const [editingSession, setEditingSession] = useState<WorkoutSession | null>(null);
   const [showExerciseDialog, setShowExerciseDialog] = useState(false);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
   const [selectedLift, setSelectedLift] = useState("");
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const currentOwnerIdRef = useRef<string | null>(null);
 
   const profile = auth.user ? { userId: String(auth.user.id), name: auth.user.name || "Athlete" } : tracker.profile;
+  const athleteProfile = tracker.snapshot.profile;
   currentOwnerIdRef.current = profile?.userId ?? null;
   const workouts = useMemo(() => tracker.snapshot.workouts.filter(item => !item.deletedAt).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt)), [tracker.snapshot.workouts]);
   const weighIns = useMemo(() => tracker.snapshot.weighIns.filter(item => !item.deletedAt).sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt)), [tracker.snapshot.weighIns]);
@@ -149,6 +152,13 @@ function Home() {
     const next = { ...tracker.snapshot, weighIns: [...tracker.snapshot.weighIns, entry], updatedAt: new Date().toISOString() };
     await tracker.saveChanges(next);
     toast.success("Weigh-in saved");
+  }
+
+  async function saveAthleteProfile(nextProfile: AthleteProfile) {
+    const next = { ...tracker.snapshot, profile: nextProfile, updatedAt: new Date().toISOString() };
+    await tracker.saveChanges(next);
+    setShowProfileSettings(false);
+    toast.success("Profile saved", { description: "Your details are stored locally and will sync with your account when connected." });
   }
 
   async function saveMeasurement(entry: MeasurementEntry) {
@@ -267,7 +277,7 @@ function Home() {
         <nav className="rail-nav" aria-label="Main navigation">
           <button className={tab === "today" ? "active" : ""} onClick={() => setTab("today")}><HomeIcon size={18} /><span>Overview</span></button>
           <button className={tab === "workouts" ? "active" : ""} onClick={() => setTab("workouts")}><History size={18} /><span>Workout log</span><i>{workouts.length}</i></button>
-          <button className={tab === "progress" ? "active" : ""} onClick={() => setTab("progress")}><TrendingUp size={18} /><span>Progress</span></button>
+          <button className={tab === "progress" ? "active" : ""} onClick={() => setTab("progress")}><TrendingUp size={18} /><span>Stats</span></button>
         </nav>
         <div className="rail-spacer" />
         <div className="rail-quote"><span className="rail-quote-line" /><p>Numbers fade.<br /><strong>Your log remembers.</strong></p><small>REPBOOK FIELD NOTE 001</small></div>
@@ -282,7 +292,7 @@ function Home() {
             <SyncBadge status={tracker.syncStatus} offlineMode={tracker.offlineMode} />
             {installPrompt && <button className="button button-install" onClick={() => void installApp()}>Install app</button>}
             <button className="top-icon-action" title="Export JSON backup" onClick={exportBackup}><ArrowDownToLine size={17} /><span>Backup</span></button>
-            <button className="avatar-button" onClick={() => void logout()} title="Sign out">{profile.name.trim().charAt(0).toUpperCase() || "A"}</button>
+            <button className="avatar-button" onClick={() => setShowProfileSettings(true)} title="Profile settings" aria-label="Open profile settings">{profile.name.trim().charAt(0).toUpperCase() || "A"}</button>
           </div>
         </header>
 
@@ -331,7 +341,7 @@ function Home() {
           </>}
 
           {tab === "progress" && <>
-            <section className="page-heading"><div><div className="eyebrow">THE LONG VIEW</div><h1>Progress, in ink.</h1><p>Weights, measurements, workouts, and photos—kept in one timeline.</p></div><div className="page-index">BODY <span>+</span> PERFORMANCE</div></section>
+            <section className="page-heading"><div><div className="eyebrow">THE LONG VIEW</div><h1>Your stats, in ink.</h1><p>Weekly/monthly calorie estimates, body measures, workouts, and photos—kept in one timeline.</p></div><div className="page-index">BODY <span>+</span> PERFORMANCE</div></section>
             <section className="progress-overview-grid">
               <article className="progress-stat-card"><div className="eyebrow">LATEST BODY WEIGHT</div><strong>{latestWeight ? <>{formatNumber(latestWeight.weight)}<small> {latestWeight.unit}</small></> : "—"}</strong><p>{latestWeight ? `Recorded ${formatDate(latestWeight.date)}` : "Add a weigh-in to start the line."}</p></article>
               <article className="progress-stat-card accent-stat"><div className="eyebrow">WORKOUT SESSIONS</div><strong>{workouts.length.toString().padStart(2, "0")}</strong><p>Saved sessions to compare over time.</p></article>
@@ -340,7 +350,7 @@ function Home() {
             <section className="calorie-summary-grid" aria-label="Estimated calorie summaries">
               <article className="calorie-summary-card"><div className="eyebrow">ESTIMATED CALORIES · THIS WEEK</div><strong>{weeklyCalories.sessionCount ? <>≈ {formatNumber(weeklyCalories.totalKcal)}<small> kcal</small></> : "—"}</strong><p>{weeklyCalories.sessionCount ? `From ${weeklyCalories.sessionCount} workout estimate${weeklyCalories.sessionCount === 1 ? "" : "s"} · Monday to today` : "No saved calorie estimates this week."}</p></article>
               <article className="calorie-summary-card calorie-summary-month"><div className="eyebrow">ESTIMATED CALORIES · THIS MONTH</div><strong>{monthlyCalories.sessionCount ? <>≈ {formatNumber(monthlyCalories.totalKcal)}<small> kcal</small></> : "—"}</strong><p>{monthlyCalories.sessionCount ? `From ${monthlyCalories.sessionCount} workout estimate${monthlyCalories.sessionCount === 1 ? "" : "s"} · month to date` : "No saved calorie estimates this month."}</p></article>
-              <p className="calorie-summary-footnote">Approximate estimates only; workouts without a duration and dated body-weight reading are excluded.</p>
+              <p className="calorie-summary-footnote">Approximate MET estimates only. A dated weigh-in is preferred; profile weight is the fallback when no earlier reading exists.</p>
             </section>
             <section className="chart-grid">
               <article className="paper-panel chart-panel"><header className="panel-heading"><div><div className="eyebrow">BODY WEIGHT</div><h2>Trend over time</h2></div><span className="chart-tag">{latestWeight?.unit ?? "kg"}</span></header>{weighIns.length > 0 ? <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><AreaChart data={[...weighIns].reverse().map(item => ({ ...item, displayWeight: kgValue(item.weight, item.unit, latestWeight?.unit ?? "kg"), label: formatDate(item.date, { month: "short", day: "numeric" }) }))} margin={{ top: 12, right: 10, left: -16, bottom: 0 }}><defs><linearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d97706" stopOpacity={0.23} /><stop offset="95%" stopColor="#d97706" stopOpacity={0.01} /></linearGradient></defs><CartesianGrid stroke="#e7dfd1" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#82796e", fontSize: 11 }} minTickGap={24} /><YAxis domain={["dataMin - 2", "dataMax + 2"]} tickLine={false} axisLine={false} tick={{ fill: "#82796e", fontSize: 11 }} width={44} /><Tooltip formatter={(value: number) => [`${formatNumber(value)} ${latestWeight?.unit ?? "kg"}`, "Weight"]} contentStyle={{ borderRadius: 10, border: "1px solid #e7dfd1", background: "#fffcf5", fontSize: 12 }} /><Area type="monotone" dataKey="displayWeight" stroke="#d97706" strokeWidth={2.5} fill="url(#weightFill)" dot={{ r: 5, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 6, fill: "#d97706", stroke: "#fff" }} /></AreaChart></ResponsiveContainer></div> : <EmptyPanel icon={<Scale size={20} />} title={weighIns.length ? "One dot begins a line" : "Start with a weigh-in"} body="Add a dated weigh-in to see it plotted here; more readings will reveal the trend." />}<div className="chart-panel-foot"><span>{weighIns.length} reading{weighIns.length === 1 ? "" : "s"} logged</span>{weightDelta !== null && <span className={weightDelta <= 0 ? "trend-down" : "trend-up"}>{weightDelta > 0 ? "+" : ""}{formatNumber(weightDelta)} {previousWeight?.unit} since last entry</span>}</div></article>
@@ -357,10 +367,11 @@ function Home() {
         </main>
       </div>
 
-      <nav className="mobile-nav" aria-label="Main navigation"><button className={tab === "today" ? "active" : ""} onClick={() => setTab("today")}><HomeIcon size={19} /><span>Today</span></button><button className={tab === "workouts" ? "active" : ""} onClick={() => setTab("workouts")}><History size={19} /><span>Log</span></button><button className="mobile-log-button" onClick={openNewWorkout} aria-label="Log workout"><Plus size={22} /></button><button className={tab === "progress" ? "active" : ""} onClick={() => setTab("progress")}><TrendingUp size={19} /><span>Progress</span></button><button onClick={exportBackup}><ArrowDownToLine size={19} /><span>Backup</span></button></nav>
+      <nav className="mobile-nav" aria-label="Main navigation"><button className={tab === "today" ? "active" : ""} onClick={() => setTab("today")}><HomeIcon size={19} /><span>Today</span></button><button className={tab === "workouts" ? "active" : ""} onClick={() => setTab("workouts")}><History size={19} /><span>Log</span></button><button className="mobile-log-button" onClick={openNewWorkout} aria-label="Log workout"><Plus size={22} /></button><button className={tab === "progress" ? "active" : ""} onClick={() => setTab("progress")}><TrendingUp size={19} /><span>Stats</span></button><button onClick={exportBackup}><ArrowDownToLine size={19} /><span>Backup</span></button></nav>
 
-      {showComposer && <WorkoutComposer exercises={exercises} workouts={workouts} weighIns={weighIns} existing={editingSession} onClose={() => { setShowComposer(false); setEditingSession(null); }} onSave={session => void saveWorkout(session)} onAddExercise={() => setShowExerciseDialog(true)} />}
+      {showComposer && <WorkoutComposer exercises={exercises} workouts={workouts} weighIns={weighIns} athleteProfile={athleteProfile} existing={editingSession} onClose={() => { setShowComposer(false); setEditingSession(null); }} onSave={session => void saveWorkout(session)} onAddExercise={() => setShowExerciseDialog(true)} />}
       {showExerciseDialog && <ExerciseDialog onClose={() => setShowExerciseDialog(false)} onSave={exercise => void saveExercise(exercise)} />}
+      {showProfileSettings && <ProfileSettingsDialog initialProfile={athleteProfile} syncing={tracker.syncStatus === "syncing"} onSave={saveAthleteProfile} onClose={() => setShowProfileSettings(false)} onSignOut={() => void logout()} />}
       <input ref={importRef} className="visually-hidden" type="file" accept="application/json,.json" onChange={event => void importBackup(event.target.files?.[0])} />
     </div>
   );

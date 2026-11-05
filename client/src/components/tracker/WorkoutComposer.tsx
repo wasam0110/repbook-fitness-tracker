@@ -4,6 +4,7 @@ import {
   type WorkoutEntry,
   type WorkoutSession,
   type BodyWeightEntry,
+  type AthleteProfile,
 } from "@shared/tracker";
 import { getBodyWeightKgAtOrBefore, getPreviousPerformance } from "@/lib/tracker-utils";
 import type { ExerciseOption } from "@/lib/tracker-utils";
@@ -15,6 +16,7 @@ type Props = {
   exercises: ExerciseOption[];
   workouts: WorkoutSession[];
   weighIns: BodyWeightEntry[];
+  athleteProfile: AthleteProfile | null;
   existing?: WorkoutSession | null;
   onSave: (session: WorkoutSession) => void;
   onClose: () => void;
@@ -25,7 +27,7 @@ function createSet(unit: "kg" | "lb"): SetRecord {
   return { id: crypto.randomUUID(), weight: 0, reps: 8, unit };
 }
 
-export default function WorkoutComposer({ exercises, workouts, weighIns, existing, onSave, onClose, onAddExercise }: Props) {
+export default function WorkoutComposer({ exercises, workouts, weighIns, athleteProfile, existing, onSave, onClose, onAddExercise }: Props) {
   const [date, setDate] = useState(existing?.date ?? todayAsLocalDate());
   const [note, setNote] = useState(existing?.note ?? "");
   const [unit, setUnit] = useState<"kg" | "lb">(existing?.entries[0]?.sets[0]?.unit ?? "kg");
@@ -44,7 +46,11 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, existin
     }
     return map;
   }, [date, entries, existing?.id, workouts]);
-  const bodyWeightKg = useMemo(() => getBodyWeightKgAtOrBefore(date, weighIns), [date, weighIns]);
+  const bodyWeightKg = useMemo(
+    () => getBodyWeightKgAtOrBefore(date, weighIns, athleteProfile?.weightKg ?? null),
+    [athleteProfile?.weightKg, date, weighIns],
+  );
+  const hasDatedWeighIn = useMemo(() => getBodyWeightKgAtOrBefore(date, weighIns) !== null, [date, weighIns]);
   const parsedDuration = durationMinutes === "" ? null : Number(durationMinutes);
   const calorieEstimate = estimateWorkoutCalories(bodyWeightKg, parsedDuration, activityType, effort);
 
@@ -160,8 +166,8 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, existin
           </div>
           <p className="calorie-estimate-note" role="status">
             {calorieEstimate !== null
-              ? <>Rough estimate: <strong>about {calorieEstimate} kcal</strong> using {formatNumber(bodyWeightKg ?? 0)} kg body weight. Not a measured calorie count.</>
-              : "Calories need a duration and a body-weight entry dated on or before this workout. Steps alone do not determine calories."}
+              ? <>Rough estimate: <strong>about {calorieEstimate} kcal</strong> using {formatNumber(bodyWeightKg ?? 0)} kg {hasDatedWeighIn ? "dated body weight" : "profile weight"}. Not a measured calorie count.</>
+              : "Calories need a duration and body weight. A dated weigh-in is preferred; profile weight is the fallback. Steps are logged separately and do not determine this MET estimate."}
           </p>
           <label className="field-block note-field">
             <span>Session note <small>optional</small></span>

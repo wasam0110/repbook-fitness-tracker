@@ -55,11 +55,15 @@ export function formatNumber(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
-export function getBodyWeightKgAtOrBefore(date: string, weighIns: BodyWeightEntry[]): number | null {
+export function getBodyWeightKgAtOrBefore(
+  date: string,
+  weighIns: BodyWeightEntry[],
+  profileWeightKg: number | null = null,
+): number | null {
   const entry = [...weighIns]
     .filter(item => !item.deletedAt && item.date <= date)
     .sort((a, b) => b.date.localeCompare(a.date) || b.updatedAt.localeCompare(a.updatedAt))[0];
-  if (!entry) return null;
+  if (!entry) return profileWeightKg;
   return entry.unit === "kg" ? entry.weight : entry.weight * 0.45359237;
 }
 

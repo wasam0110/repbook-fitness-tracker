@@ -9,7 +9,13 @@ import {
   type OfflineProfile,
 } from "@/lib/local-data";
 import { getSupabaseClient, PROGRESS_PHOTO_BUCKET, supabaseConfigured } from "@/lib/supabase";
-import { emptyTrackerSnapshot, TrackerSnapshotSchema, type TrackerSnapshot } from "@shared/tracker";
+import {
+  AthleteProfileSchema,
+  emptyTrackerSnapshot,
+  mergeAthleteProfiles,
+  TrackerSnapshotSchema,
+  type TrackerSnapshot,
+} from "@shared/tracker";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type SyncStatus = "synced" | "syncing" | "offline" | "local";
@@ -80,13 +86,38 @@ export function useTracker(
       return data;
     }
 
-    setSyncStatus("syncing");
+      setSyncStatus("syncing");
     try {
       const validInput = TrackerSnapshotSchema.parse(data);
+      const assertAuthOwner = async () => {
+        const { data: authData, error: authError } = await getSupabaseClient().auth.getUser();
+        if (authError) throw authError;
+        if (!belongsToSignedInOwner() || !authData.user || authData.user.id !== owner.userId) {
+          throw new OwnerChangedError();
+        }
+        return authData.user;
+      };
+
+      const authUser = await assertAuthOwner();
+      const remoteProfileResult = AthleteProfileSchema.safeParse(authUser.user_metadata?.repbook_profile);
+      const remoteProfile = remoteProfileResult.success ? remoteProfileResult.data : null;
+      const mergedProfile = mergeAthleteProfiles(validInput.profile, remoteProfile);
+      if (mergedProfile && JSON.stringify(mergedProfile) !== JSON.stringify(remoteProfile)) {
+        const currentAuthUser = await assertAuthOwner();
+        const { data: updatedAuth, error: profileError } = await getSupabaseClient().auth.updateUser({
+          data: { ...currentAuthUser.user_metadata, repbook_profile: mergedProfile },
+        });
+        if (profileError) throw profileError;
+        if (updatedAuth.user?.id !== owner.userId || !belongsToSignedInOwner()) {
+          throw new OwnerChangedError();
+        }
+      }
+      await assertAuthOwner();
+
       const { data: mergedData, error } = await getSupabaseClient()
-        .rpc("sync_fitness_snapshot", { p_local: validInput });
+        .rpc("sync_fitness_snapshot", { p_local: { ...validInput, profile: mergedProfile } });
       if (error) throw error;
-      const parsed = TrackerSnapshotSchema.safeParse(mergedData);
+      const parsed = TrackerSnapshotSchema.safeParse({ ...mergedData, profile: mergedProfile });
       if (!parsed.success) throw new Error("Supabase returned an invalid tracker snapshot.");
       const merged = parsed.data;
 

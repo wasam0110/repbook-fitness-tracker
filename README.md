@@ -34,6 +34,10 @@ Import this private repository into Vercel as a Vite project. The included `verc
 
 The app exports and imports RepBook JSON backups. Workout and measurement records are included in JSON. Progress-photo files are stored separately in the private bucket; download them individually before moving between accounts. The existing legacy account has a small tracker dataset and no progress-photo files. Keep its exported backup outside Git and import it only after signing in to the verified matching account.
 
+## Profile and calorie estimates
+
+Optional body weight (kg), height (cm), and age are stored in the local snapshot and the signed-in Supabase account's user metadata, and are included in JSON backups. The calorie estimate currently uses profile weight only when no weigh-in dated on or before the workout is available; height and age are saved but do not change the current MET-based estimate. Estimated values are approximate, not measured calorie expenditure.
+
 ## Offline behavior
 
 After the first online visit, the installed PWA caches its shell and data locally. Workout, body-weight, and measurement edits work offline and sync when the user reconnects. Progress-photo uploads require a connection; photos opened on a device are cached locally for offline viewing. Clearing the browser's site data removes that device's offline cache, so keep a JSON backup.

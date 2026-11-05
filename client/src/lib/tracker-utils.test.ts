@@ -54,6 +54,11 @@ describe("getBodyWeightKgAtOrBefore", () => {
   it("returns null when there is no prior weigh-in", () => {
     expect(getBodyWeightKgAtOrBefore("2026-10-23", [weighIn("future", "2026-10-24", 82)])).toBeNull();
   });
+
+  it("uses the profile weight only when no dated weigh-in exists", () => {
+    expect(getBodyWeightKgAtOrBefore("2026-10-23", [weighIn("future", "2026-10-24", 82)], 79.5)).toBe(79.5);
+    expect(getBodyWeightKgAtOrBefore("2026-10-24", [weighIn("today", "2026-10-24", 82)], 79.5)).toBe(82);
+  });
 });
 
 describe("summarizeWorkoutCalories", () => {

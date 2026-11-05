@@ -102,6 +102,16 @@ describe("fitness snapshot sync", () => {
     ]);
   });
 
+  it("keeps the newest account profile when local and remote edits conflict", () => {
+    const older = { weightKg: 82, heightCm: 175, ageYears: 30, updatedAt: "2026-10-24T10:00:00.000Z" };
+    const newer = { weightKg: 80, heightCm: 175, ageYears: 30, updatedAt: "2026-10-25T10:00:00.000Z" };
+    const merged = mergeTrackerSnapshots(
+      { ...emptyTrackerSnapshot(), profile: older },
+      { ...emptyTrackerSnapshot(), profile: newer },
+    );
+    expect(merged.profile).toEqual(newer);
+  });
+
   it("defaults new collections and session fields when loading an older saved snapshot", () => {
     const legacyWorkout = {
       ...workout("legacy", "2026-10-24T10:00:00.000Z"),
@@ -120,6 +130,7 @@ describe("fitness snapshot sync", () => {
     });
     expect(parsed.measurements).toEqual([]);
     expect(parsed.photos).toEqual([]);
+    expect(parsed.profile).toBeNull();
     expect(parsed.workouts[0]).toMatchObject({
       activityType: "strength",
       durationMinutes: null,

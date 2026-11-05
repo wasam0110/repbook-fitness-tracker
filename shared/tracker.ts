@@ -95,12 +95,20 @@ export const ProgressPhotoSchema = z.object({
   deletedAt: isoTimestamp.nullable(),
 });
 
+export const AthleteProfileSchema = z.object({
+  weightKg: z.number().min(1).max(1000).nullable(),
+  heightCm: z.number().min(50).max(300).nullable(),
+  ageYears: z.number().int().min(1).max(120).nullable(),
+  updatedAt: isoTimestamp,
+});
+
 export const TrackerSnapshotSchema = z.object({
   exercises: z.array(ExerciseSchema).max(5000),
   workouts: z.array(WorkoutSessionSchema).max(20000),
   weighIns: z.array(BodyWeightEntrySchema).max(20000),
   measurements: z.array(MeasurementEntrySchema).max(20000).default([]),
   photos: z.array(ProgressPhotoSchema).max(5000).default([]),
+  profile: AthleteProfileSchema.nullable().default(null),
   updatedAt: isoTimestamp,
 });
 
@@ -111,6 +119,7 @@ export type WorkoutSession = z.infer<typeof WorkoutSessionSchema>;
 export type BodyWeightEntry = z.infer<typeof BodyWeightEntrySchema>;
 export type MeasurementEntry = z.infer<typeof MeasurementEntrySchema>;
 export type ProgressPhoto = z.infer<typeof ProgressPhotoSchema>;
+export type AthleteProfile = z.infer<typeof AthleteProfileSchema>;
 export type TrackerSnapshot = z.infer<typeof TrackerSnapshotSchema>;
 
 /** Rough gross-energy estimate; session duration, body weight, activity type, and effort are required. */
@@ -137,6 +146,7 @@ export function emptyTrackerSnapshot(): TrackerSnapshot {
     weighIns: [],
     measurements: [],
     photos: [],
+    profile: null,
     updatedAt: new Date(0).toISOString(),
   };
 }
@@ -155,6 +165,15 @@ function mergeRecords<T extends { id: string; updatedAt: string }>(
   return [...merged.values()];
 }
 
+export function mergeAthleteProfiles(
+  local: AthleteProfile | null,
+  remote: AthleteProfile | null,
+): AthleteProfile | null {
+  if (!local) return remote;
+  if (!remote) return local;
+  return Date.parse(local.updatedAt) >= Date.parse(remote.updatedAt) ? local : remote;
+}
+
 /** Merge append-oriented records by stable ID, retaining the newest version/tombstone. */
 export function mergeTrackerSnapshots(
   local: TrackerSnapshot,
@@ -166,6 +185,7 @@ export function mergeTrackerSnapshots(
     weighIns: mergeRecords(local.weighIns, remote.weighIns),
     measurements: mergeRecords(local.measurements, remote.measurements),
     photos: mergeRecords(local.photos, remote.photos),
+    profile: mergeAthleteProfiles(local.profile, remote.profile),
     updatedAt:
       Date.parse(local.updatedAt) >= Date.parse(remote.updatedAt)
         ? local.updatedAt

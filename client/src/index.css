@@ -314,8 +314,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .modal-backdrop { position: fixed; z-index: 20; inset: 0; display: flex; align-items: center; justify-content: center; overflow-y: auto; padding: 18px; background: #201a14a8; backdrop-filter: blur(4px); }
 .modal-sheet { width: min(100%, 680px); max-height: calc(100vh - 36px); overflow: auto; border: 1px solid #e3d8c8; border-radius: 16px; padding: 21px; background: var(--paper-light); box-shadow: 0 24px 80px #1d160f4d; }
 .exercise-modal { width: min(100%, 480px); }
+.profile-modal { width: min(100%, 500px); }
 .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 15px; margin-bottom: 18px; }
 .modal-header h2 { margin: 4px 0 0; color: #3d342c; font-family: "Roboto Slab", Georgia, serif; font-size: 23px; font-weight: 500; letter-spacing: -.035em; }
+.profile-intro { margin: -4px 0 18px; color: #82776b; font-size: 10px; line-height: 1.7; }
+.profile-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.profile-age-field { grid-column: 1 / -1; width: calc(50% - 6px); }
+.profile-calorie-note { margin-top: 15px; border: 1px solid #ead9bc; border-radius: 9px; padding: 11px 12px; background: #f8f0e3; color: #80705e; }
+.profile-calorie-note strong { color: #9b5e1d; font-size: 9px; }
+.profile-calorie-note p { margin: 5px 0 0; font-size: 9px; line-height: 1.65; }
+.profile-modal-footer { align-items: center; }
+.profile-signout { margin-right: auto; color: #9a513f; }
+.profile-footer-spacer { flex: 1; }
 .workout-meta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .session-unit-row { width: calc(50% - 7px); margin-top: 12px; }
 .session-meta-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 13px; }
@@ -506,6 +516,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .modal-backdrop { align-items: flex-end; padding: 0; }
   .modal-sheet { width: 100%; max-height: 92vh; border-radius: 18px 18px 0 0; padding: 18px 15px calc(16px + env(safe-area-inset-bottom)); }
   .modal-header h2 { font-size: 21px; }
+  .profile-fields { grid-template-columns: 1fr; }
+  .profile-age-field { grid-column: auto; width: auto; }
+  .profile-modal-footer { display: grid; grid-template-columns: 1fr 1fr; }
+  .profile-signout { grid-column: 1 / -1; margin-right: 0; }
+  .profile-footer-spacer { display: none; }
   .workout-meta-row { gap: 9px; }
   .session-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
   .session-unit-row { width: calc(50% - 5px); }
