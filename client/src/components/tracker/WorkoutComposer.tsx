@@ -6,7 +6,7 @@ import {
   type BodyWeightEntry,
   type AthleteProfile,
 } from "@shared/tracker";
-import { getBodyWeightKgAtOrBefore, getPreviousPerformance } from "@/lib/tracker-utils";
+import { filterExercisesByCategories, getBodyWeightKgAtOrBefore, getPreviousPerformance } from "@/lib/tracker-utils";
 import type { ExerciseOption } from "@/lib/tracker-utils";
 import { formatDate, formatNumber, formatWeight, todayAsLocalDate } from "@/lib/tracker-utils";
 import { Minus, Plus, X } from "lucide-react";
@@ -36,6 +36,7 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, athlete
   const [steps, setSteps] = useState(existing?.steps?.toString() ?? "");
   const [effort, setEffort] = useState<"moderate" | "vigorous">(existing?.effort ?? "moderate");
   const [selectedExercise, setSelectedExercise] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [entries, setEntries] = useState<WorkoutEntry[]>(existing?.entries ?? []);
   const [error, setError] = useState("");
 
@@ -53,6 +54,14 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, athlete
   const hasDatedWeighIn = useMemo(() => getBodyWeightKgAtOrBefore(date, weighIns) !== null, [date, weighIns]);
   const parsedDuration = durationMinutes === "" ? null : Number(durationMinutes);
   const parsedSteps = steps === "" ? null : Number(steps);
+  const exerciseCategories = useMemo(
+    () => [...new Set(exercises.map(exercise => exercise.category.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [exercises],
+  );
+  const visibleExercises = useMemo(
+    () => filterExercisesByCategories(exercises, selectedCategories),
+    [exercises, selectedCategories],
+  );
   const calorieEstimate = estimateWorkoutCalories({
     bodyWeightKg,
     durationMinutes: parsedDuration,
@@ -98,6 +107,18 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, athlete
       ...entry,
       sets: entry.sets.length <= 1 ? entry.sets : entry.sets.filter(set => set.id !== setId),
     }));
+  }
+
+  function toggleCategory(category: string) {
+    setSelectedCategories(current => current.includes(category)
+      ? current.filter(item => item !== category)
+      : [...current, category]);
+    setSelectedExercise("");
+  }
+
+  function clearCategoryFilter() {
+    setSelectedCategories([]);
+    setSelectedExercise("");
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -187,10 +208,24 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, athlete
             <div><span className="eyebrow">THE WORK</span><h3>{activityType === "cardio" ? "Optional exercises & sets" : "Exercises & sets"}</h3></div>
             <button className="text-action" type="button" onClick={onAddExercise}><Plus size={16} /> New exercise</button>
           </div>
+          {exerciseCategories.length > 1 && <fieldset className="exercise-category-filter">
+            <legend>FILTER BY MUSCLE GROUP</legend>
+            <div className="exercise-category-chips">
+              <button type="button" className={`exercise-category-chip ${selectedCategories.length === 0 ? "selected" : ""}`} aria-pressed={selectedCategories.length === 0} onClick={clearCategoryFilter}>All</button>
+              {exerciseCategories.map(category => <button
+                key={category}
+                type="button"
+                className={`exercise-category-chip ${selectedCategories.includes(category) ? "selected" : ""}`}
+                aria-pressed={selectedCategories.includes(category)}
+                onClick={() => toggleCategory(category)}
+              >{category}</button>)}
+            </div>
+            {selectedCategories.length > 0 && <p className="exercise-category-count">Showing {visibleExercises.length} of {exercises.length} exercises</p>}
+          </fieldset>}
           <div className="exercise-picker-row">
             <select value={selectedExercise} onChange={event => setSelectedExercise(event.target.value)} aria-label="Choose exercise">
               <option value="">Choose an exercise…</option>
-              {exercises.map(exercise => <option key={exercise.id} value={exercise.id}>{exercise.name} · {exercise.category}</option>)}
+              {visibleExercises.map(exercise => <option key={exercise.id} value={exercise.id}>{exercise.name} · {exercise.category}</option>)}
             </select>
             <button className="button button-secondary" type="button" onClick={addExercise} disabled={!selectedExercise}><Plus size={17} /> Add</button>
           </div>

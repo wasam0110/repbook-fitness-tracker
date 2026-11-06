@@ -33,6 +33,12 @@ export function getExercises(snapshot: TrackerSnapshot): ExerciseOption[] {
   );
 }
 
+export function filterExercisesByCategories(exercises: ExerciseOption[], categories: string[]): ExerciseOption[] {
+  if (categories.length === 0) return exercises;
+  const selected = new Set(categories.map(category => category.trim().toLocaleLowerCase()));
+  return exercises.filter(exercise => selected.has(exercise.category.trim().toLocaleLowerCase()));
+}
+
 export function todayAsLocalDate(): string {
   const date = new Date();
   const year = date.getFullYear();

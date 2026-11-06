@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getBodyWeightKgAtOrBefore, summarizeWorkoutCalories } from "./tracker-utils";
+import { filterExercisesByCategories, getBodyWeightKgAtOrBefore, summarizeWorkoutCalories, type ExerciseOption } from "./tracker-utils";
 import type { BodyWeightEntry, WorkoutSession } from "@shared/tracker";
 
 function weighIn(id: string, date: string, weight: number, unit: "kg" | "lb" = "kg", deletedAt: string | null = null): BodyWeightEntry {
@@ -58,6 +58,22 @@ describe("getBodyWeightKgAtOrBefore", () => {
   it("uses the profile weight only when no dated weigh-in exists", () => {
     expect(getBodyWeightKgAtOrBefore("2026-10-23", [weighIn("future", "2026-10-24", 82)], 79.5)).toBe(79.5);
     expect(getBodyWeightKgAtOrBefore("2026-10-24", [weighIn("today", "2026-10-24", 82)], 79.5)).toBe(82);
+  });
+});
+
+describe("filterExercisesByCategories", () => {
+  const exercises: ExerciseOption[] = [
+    { id: "bench", name: "Bench Press", category: "Chest", equipment: "Barbell" },
+    { id: "curl", name: "Dumbbell Curl", category: "Biceps", equipment: "Dumbbell" },
+    { id: "row", name: "Barbell Row", category: "Back", equipment: "Barbell" },
+  ];
+
+  it("shows the complete exercise library when no muscle group is selected", () => {
+    expect(filterExercisesByCategories(exercises, [])).toEqual(exercises);
+  });
+
+  it("shows only exercises from any selected muscle groups", () => {
+    expect(filterExercisesByCategories(exercises, ["chest", "Biceps"]).map(exercise => exercise.id)).toEqual(["bench", "curl"]);
   });
 });
 

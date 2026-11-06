@@ -1,4 +1,4 @@
-const CACHE_NAME = "repbook-shell-v2";
+const CACHE_NAME = "repbook-shell-v3";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/icons/repbook-192.png", "/icons/repbook-512.png"];
 
 self.addEventListener("install", event => {
@@ -28,7 +28,7 @@ self.addEventListener("fetch", event => {
         .then(response => {
           if (response.ok) {
             const copy = response.clone();
-            void caches.open(CACHE_NAME).then(cache => cache.put("/", copy));
+            void caches.open(CACHE_NAME).then(cache => cache.put("/", copy)).catch(() => {});
           }
           return response;
         })
@@ -41,7 +41,10 @@ self.addEventListener("fetch", event => {
     event.respondWith(
       caches.match(request).then(cached => {
         const network = fetch(request).then(response => {
-          if (response.ok) void caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone()));
+          if (response.ok) {
+            const copy = response.clone();
+            void caches.open(CACHE_NAME).then(cache => cache.put(request, copy)).catch(() => {});
+          }
           return response;
         });
         return cached || network;

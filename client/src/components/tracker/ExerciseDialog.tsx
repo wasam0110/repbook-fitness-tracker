@@ -5,7 +5,7 @@ export type NewExercise = { id: string; name: string; category: string; equipmen
 
 type Props = { onSave: (exercise: NewExercise) => void; onClose: () => void };
 
-const CATEGORIES = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Cardio", "Other"];
+const CATEGORIES = ["Chest", "Back", "Shoulders", "Biceps", "Triceps", "Arms", "Forearms", "Quads", "Hamstrings", "Glutes", "Calves", "Legs", "Core", "Cardio", "Other"];
 const EQUIPMENT = ["Barbell", "Dumbbell", "Cable", "Machine", "Bodyweight", "Kettlebell", "Other"];
 
 export default function ExerciseDialog({ onSave, onClose }: Props) {
