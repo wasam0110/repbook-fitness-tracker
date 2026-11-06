@@ -52,7 +52,16 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, athlete
   );
   const hasDatedWeighIn = useMemo(() => getBodyWeightKgAtOrBefore(date, weighIns) !== null, [date, weighIns]);
   const parsedDuration = durationMinutes === "" ? null : Number(durationMinutes);
-  const calorieEstimate = estimateWorkoutCalories(bodyWeightKg, parsedDuration, activityType, effort);
+  const parsedSteps = steps === "" ? null : Number(steps);
+  const calorieEstimate = estimateWorkoutCalories({
+    bodyWeightKg,
+    durationMinutes: parsedDuration,
+    activityType,
+    effort,
+    ageYears: athleteProfile?.ageYears ?? null,
+    heightCm: athleteProfile?.heightCm ?? null,
+    steps: parsedSteps !== null && Number.isInteger(parsedSteps) && parsedSteps >= 0 ? parsedSteps : null,
+  });
 
   function addExercise() {
     const selected = exercises.find(exercise => exercise.id === selectedExercise);
@@ -104,7 +113,7 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, athlete
       note: note.trim(),
       activityType,
       durationMinutes: parsedDuration && Number.isInteger(parsedDuration) ? parsedDuration : null,
-      steps: activityType === "cardio" && steps !== "" && Number.isInteger(Number(steps)) ? Number(steps) : null,
+      steps: activityType === "cardio" && parsedSteps !== null && Number.isInteger(parsedSteps) ? parsedSteps : null,
       effort,
       bodyWeightKgUsed: calorieEstimate === null ? null : bodyWeightKg,
       calorieEstimateKcal: calorieEstimate,
@@ -166,8 +175,8 @@ export default function WorkoutComposer({ exercises, workouts, weighIns, athlete
           </div>
           <p className="calorie-estimate-note" role="status">
             {calorieEstimate !== null
-              ? <>Rough estimate: <strong>about {calorieEstimate} kcal</strong> using {formatNumber(bodyWeightKg ?? 0)} kg {hasDatedWeighIn ? "dated body weight" : "profile weight"}. Not a measured calorie count.</>
-              : "Calories need a duration and body weight. A dated weigh-in is preferred; profile weight is the fallback. Steps are logged separately and do not determine this MET estimate."}
+              ? <>Rough estimate: <strong>about {calorieEstimate} kcal</strong> using {formatNumber(bodyWeightKg ?? 0)} kg {hasDatedWeighIn ? "dated body weight" : "profile weight"}. Profile age selects the 60+ activity table when applicable; height, steps, and duration can approximate walking pace. Not a measured calorie count.</>
+              : "Calories need a duration and body weight. A dated weigh-in is preferred; profile weight is the fallback. For cardio, steps, height, and duration can approximate walking pace."}
           </p>
           <label className="field-block note-field">
             <span>Session note <small>optional</small></span>

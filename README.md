@@ -36,7 +36,7 @@ The app exports and imports RepBook JSON backups. Workout and measurement record
 
 ## Profile and calorie estimates
 
-Optional body weight (kg), height (cm), and age are stored in the local snapshot and the signed-in Supabase account's user metadata, and are included in JSON backups. The calorie estimate currently uses profile weight only when no weigh-in dated on or before the workout is available; height and age are saved but do not change the current MET-based estimate. Estimated values are approximate, not measured calorie expenditure.
+Optional body weight (kg), height (cm), and age are stored in the local snapshot and the signed-in Supabase account's user metadata, and are included in JSON backups. Calorie estimates use dated body weight when available, otherwise the profile weight, together with session duration and an activity MET value. For adults 60+, the estimate uses activity-specific values from the [Older Adult Compendium](https://pacompendium.com/older-adult-compendium/); its MET60+ baseline differs from the [Adult Compendium](https://pacompendium.com/). For cardio logged with steps, profile height and duration provide a rough walking-pace estimate using a step-distance proxy; published work reports that this can be inaccurate in some health groups, so it is not treated as measured distance or calories ([study](https://pmc.ncbi.nlm.nih.gov/articles/PMC4843495/)). Height does not affect strength estimates, and reps/load alone cannot determine calories. Estimates are approximate, not measured; previously saved workouts keep their stored estimate until edited and resaved. The weekly and monthly Stats summaries can be downloaded as CSV or opened in the browser's print dialog to save as PDF.
 
 ## Offline behavior
 

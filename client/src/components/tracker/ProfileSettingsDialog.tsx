@@ -90,7 +90,7 @@ export default function ProfileSettingsDialog({ initialProfile, syncing, onSave,
           </div>
           <div className="profile-calorie-note">
             <strong>About calorie estimates</strong>
-            <p>Profile weight is used only when there is no weigh-in dated on or before a workout. The current MET estimate uses body weight, session duration, activity type, and effort. Height and age are saved here but do not change that estimate; steps alone are not a measured calorie count.</p>
+            <p>Profile weight is used only when there is no weigh-in dated on or before a workout. Age 60+ uses older-adult activity values. For adult cardio, height plus steps and duration can estimate walking pace; that distance is only a rough proxy. Height does not change strength estimates, and calories are not measured. Adult activity tables are not validated for people under 18.</p>
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
           <footer className="modal-footer profile-modal-footer">

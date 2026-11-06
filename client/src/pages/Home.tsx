@@ -9,9 +9,10 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useTracker } from "@/lib/useTracker";
 import { saveLocalProgressPhotoBlob } from "@/lib/local-data";
 import { OwnerChangedError, runForActiveOwner } from "@/lib/owner-guard";
+import { downloadCalorieSummaryCsv, openCalorieSummaryPdf } from "@/lib/calorie-export";
 import { getExercises, getPreviousPerformance, formatDate, formatNumber, formatWeight, summarizeWorkoutCalories, todayAsLocalDate } from "@/lib/tracker-utils";
 import { mergeTrackerSnapshots, TrackerSnapshotSchema, type AthleteProfile, type BodyWeightEntry, type MeasurementEntry, type ProgressPhoto, type WorkoutSession } from "@shared/tracker";
-import { ArrowDownToLine, ArrowUpFromLine, CalendarDays, Check, ChevronRight, Cloud, Dumbbell, History, Home as HomeIcon, LoaderCircle, LogOut, Plus, Scale, TrendingUp, WifiOff, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpFromLine, CalendarDays, Check, ChevronRight, Cloud, Dumbbell, FileSpreadsheet, FileText, History, Home as HomeIcon, LoaderCircle, LogOut, Plus, Scale, TrendingUp, WifiOff, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -231,6 +232,23 @@ function Home() {
     toast.success("JSON backup downloaded");
   }
 
+  function exportCalorieCsv(period: "week" | "month") {
+    const startDate = period === "week" ? weekStartDate : monthStartDate;
+    const summary = period === "week" ? weeklyCalories : monthlyCalories;
+    downloadCalorieSummaryCsv({ period, startDate, endDate: todayDate, ...summary, workouts });
+    toast.success(`${period === "week" ? "Weekly" : "Monthly"} calorie CSV downloaded`);
+  }
+
+  function exportCaloriePdf(period: "week" | "month") {
+    const startDate = period === "week" ? weekStartDate : monthStartDate;
+    const summary = period === "week" ? weeklyCalories : monthlyCalories;
+    if (!openCalorieSummaryPdf({ period, startDate, endDate: todayDate, ...summary, workouts })) {
+      toast.error("Allow pop-ups to open the printable calorie report.");
+      return;
+    }
+    toast.message("Print dialog opened", { description: "Choose Save as PDF to download this summary." });
+  }
+
   async function importBackup(file: File | undefined) {
     if (!file) return;
     try {
@@ -348,9 +366,25 @@ function Home() {
               <article className="progress-stat-card"><div className="eyebrow">EXERCISES ON FILE</div><strong>{new Set(workouts.flatMap(session => session.entries.map(entry => entry.exerciseId))).size.toString().padStart(2, "0")}</strong><p>Movements you've recorded.</p></article>
             </section>
             <section className="calorie-summary-grid" aria-label="Estimated calorie summaries">
-              <article className="calorie-summary-card"><div className="eyebrow">ESTIMATED CALORIES · THIS WEEK</div><strong>{weeklyCalories.sessionCount ? <>≈ {formatNumber(weeklyCalories.totalKcal)}<small> kcal</small></> : "—"}</strong><p>{weeklyCalories.sessionCount ? `From ${weeklyCalories.sessionCount} workout estimate${weeklyCalories.sessionCount === 1 ? "" : "s"} · Monday to today` : "No saved calorie estimates this week."}</p></article>
-              <article className="calorie-summary-card calorie-summary-month"><div className="eyebrow">ESTIMATED CALORIES · THIS MONTH</div><strong>{monthlyCalories.sessionCount ? <>≈ {formatNumber(monthlyCalories.totalKcal)}<small> kcal</small></> : "—"}</strong><p>{monthlyCalories.sessionCount ? `From ${monthlyCalories.sessionCount} workout estimate${monthlyCalories.sessionCount === 1 ? "" : "s"} · month to date` : "No saved calorie estimates this month."}</p></article>
-              <p className="calorie-summary-footnote">Approximate MET estimates only. A dated weigh-in is preferred; profile weight is the fallback when no earlier reading exists.</p>
+              <article className="calorie-summary-card">
+                <div className="eyebrow">ESTIMATED CALORIES · THIS WEEK</div>
+                <strong>{weeklyCalories.sessionCount ? <>≈ {formatNumber(weeklyCalories.totalKcal)}<small> kcal</small></> : "—"}</strong>
+                <p>{weeklyCalories.sessionCount ? `From ${weeklyCalories.sessionCount} workout estimate${weeklyCalories.sessionCount === 1 ? "" : "s"} · Monday to today` : "No saved calorie estimates this week."}</p>
+                <div className="calorie-summary-actions" aria-label="Export weekly calorie summary">
+                  <button className="calorie-export-button" type="button" onClick={() => exportCalorieCsv("week")}><FileSpreadsheet size={13} /> CSV</button>
+                  <button className="calorie-export-button" type="button" onClick={() => exportCaloriePdf("week")}><FileText size={13} /> PDF</button>
+                </div>
+              </article>
+              <article className="calorie-summary-card calorie-summary-month">
+                <div className="eyebrow">ESTIMATED CALORIES · THIS MONTH</div>
+                <strong>{monthlyCalories.sessionCount ? <>≈ {formatNumber(monthlyCalories.totalKcal)}<small> kcal</small></> : "—"}</strong>
+                <p>{monthlyCalories.sessionCount ? `From ${monthlyCalories.sessionCount} workout estimate${monthlyCalories.sessionCount === 1 ? "" : "s"} · month to date` : "No saved calorie estimates this month."}</p>
+                <div className="calorie-summary-actions" aria-label="Export monthly calorie summary">
+                  <button className="calorie-export-button" type="button" onClick={() => exportCalorieCsv("month")}><FileSpreadsheet size={13} /> CSV</button>
+                  <button className="calorie-export-button" type="button" onClick={() => exportCaloriePdf("month")}><FileText size={13} /> PDF</button>
+                </div>
+              </article>
+              <p className="calorie-summary-footnote">Approximate MET estimates only. A dated weigh-in is preferred; profile weight is the fallback. Age uses 60+ activity values where applicable; height plus steps can approximate walking pace.</p>
             </section>
             <section className="chart-grid">
               <article className="paper-panel chart-panel"><header className="panel-heading"><div><div className="eyebrow">BODY WEIGHT</div><h2>Trend over time</h2></div><span className="chart-tag">{latestWeight?.unit ?? "kg"}</span></header>{weighIns.length > 0 ? <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><AreaChart data={[...weighIns].reverse().map(item => ({ ...item, displayWeight: kgValue(item.weight, item.unit, latestWeight?.unit ?? "kg"), label: formatDate(item.date, { month: "short", day: "numeric" }) }))} margin={{ top: 12, right: 10, left: -16, bottom: 0 }}><defs><linearGradient id="weightFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#d97706" stopOpacity={0.23} /><stop offset="95%" stopColor="#d97706" stopOpacity={0.01} /></linearGradient></defs><CartesianGrid stroke="#e7dfd1" strokeDasharray="3 5" vertical={false} /><XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#82796e", fontSize: 11 }} minTickGap={24} /><YAxis domain={["dataMin - 2", "dataMax + 2"]} tickLine={false} axisLine={false} tick={{ fill: "#82796e", fontSize: 11 }} width={44} /><Tooltip formatter={(value: number) => [`${formatNumber(value)} ${latestWeight?.unit ?? "kg"}`, "Weight"]} contentStyle={{ borderRadius: 10, border: "1px solid #e7dfd1", background: "#fffcf5", fontSize: 12 }} /><Area type="monotone" dataKey="displayWeight" stroke="#d97706" strokeWidth={2.5} fill="url(#weightFill)" dot={{ r: 5, fill: "#d97706", stroke: "#fff", strokeWidth: 2 }} activeDot={{ r: 6, fill: "#d97706", stroke: "#fff" }} /></AreaChart></ResponsiveContainer></div> : <EmptyPanel icon={<Scale size={20} />} title={weighIns.length ? "One dot begins a line" : "Start with a weigh-in"} body="Add a dated weigh-in to see it plotted here; more readings will reveal the trend." />}<div className="chart-panel-foot"><span>{weighIns.length} reading{weighIns.length === 1 ? "" : "s"} logged</span>{weightDelta !== null && <span className={weightDelta <= 0 ? "trend-down" : "trend-up"}>{weightDelta > 0 ? "+" : ""}{formatNumber(weightDelta)} {previousWeight?.unit} since last entry</span>}</div></article>

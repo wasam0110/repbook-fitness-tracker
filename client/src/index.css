@@ -285,6 +285,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .calorie-summary-card > strong { display: block; margin-top: 9px; color: #493d31; font-family: "Roboto Slab", Georgia, serif; font-size: 26px; font-weight: 500; letter-spacing: -.035em; line-height: 1; }
 .calorie-summary-card > strong small { font-family: "DM Sans", Arial, sans-serif; font-size: 12px; letter-spacing: 0; }
 .calorie-summary-card > p { margin: 7px 0 0; color: #897d6e; font-size: 9px; line-height: 1.5; }
+.calorie-summary-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.calorie-export-button { display: inline-flex; min-height: 28px; align-items: center; justify-content: center; gap: 5px; border: 1px solid #ddceb7; border-radius: 7px; padding: 0 8px; color: #6d5b46; background: #fffaf2; font-size: 8px; font-weight: 700; letter-spacing: .04em; }
+.calorie-export-button:hover { border-color: #b89263; background: #eee2cf; }
 .calorie-summary-footnote { grid-column: 1 / -1; margin: -3px 2px 0; color: #978b7b; font-size: 8px; line-height: 1.5; }
 .chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .chart-panel { display: flex; min-width: 0; min-height: 345px; flex-direction: column; }
@@ -501,6 +504,8 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
   .calorie-summary-grid { grid-template-columns: 1fr; gap: 8px; margin-bottom: 10px; }
   .calorie-summary-card { padding: 12px; }
   .calorie-summary-card > strong { margin-top: 7px; font-size: 24px; }
+  .calorie-summary-actions { gap: 6px; }
+  .calorie-export-button { flex: 1; }
   .progress-stat-card { min-height: 94px; padding: 11px; }
   .progress-stat-card:first-child { grid-column: 1/-1; }
   .progress-stat-card > strong { margin-top: 7px; font-size: 24px; }

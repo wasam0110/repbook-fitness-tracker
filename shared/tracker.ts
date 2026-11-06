@@ -122,21 +122,69 @@ export type ProgressPhoto = z.infer<typeof ProgressPhotoSchema>;
 export type AthleteProfile = z.infer<typeof AthleteProfileSchema>;
 export type TrackerSnapshot = z.infer<typeof TrackerSnapshotSchema>;
 
-/** Rough gross-energy estimate; session duration, body weight, activity type, and effort are required. */
-export function estimateWorkoutCalories(
-  bodyWeightKg: number | null,
-  durationMinutes: number | null,
-  activityType: "strength" | "cardio",
-  effort: "moderate" | "vigorous",
-): number | null {
-  if (bodyWeightKg === null || durationMinutes === null || bodyWeightKg <= 0 || durationMinutes <= 0) {
+export type WorkoutCalorieEstimateInput = {
+  bodyWeightKg: number | null;
+  durationMinutes: number | null;
+  activityType: "strength" | "cardio";
+  effort: "moderate" | "vigorous";
+  ageYears?: number | null;
+  heightCm?: number | null;
+  steps?: number | null;
+};
+
+function walkingMet(ageYears: number | null | undefined, speedMph: number): number {
+  if (ageYears !== null && ageYears !== undefined && ageYears >= 60) {
+    if (speedMph < 1) return 3.0;
+    if (speedMph < 2) return 4.0;
+    if (speedMph < 2.8) return 4.5;
+    if (speedMph < 3.3) return 5.3;
+    if (speedMph < 4) return 6.0;
+    if (speedMph < 4.5) return 7.3;
+    return 9.0;
+  }
+
+  if (speedMph < 2) return 2.3;
+  if (speedMph < 2.5) return 2.8;
+  if (speedMph < 2.8) return 3.0;
+  if (speedMph < 3.5) return 3.8;
+  if (speedMph < 4) return 4.8;
+  if (speedMph < 4.5) return 5.5;
+  if (speedMph < 5) return 7.0;
+  return 8.5;
+}
+
+/** Rough gross-energy estimate. Steps and height can approximate walking pace; neither makes this a measured calorie count. */
+export function estimateWorkoutCalories(input: WorkoutCalorieEstimateInput): number | null {
+  const { bodyWeightKg, durationMinutes, activityType, effort, ageYears, heightCm, steps } = input;
+  if (bodyWeightKg === null || durationMinutes === null || !Number.isFinite(bodyWeightKg) || !Number.isFinite(durationMinutes) || bodyWeightKg <= 0 || durationMinutes <= 0) {
     return null;
   }
 
-  const mets = activityType === "strength"
-    ? { moderate: 3.5, vigorous: 6 }
-    : { moderate: 4, vigorous: 7 };
-  return Math.round((mets[effort] * 3.5 * bodyWeightKg / 200) * durationMinutes);
+  const olderAdult = ageYears !== null && ageYears !== undefined && ageYears >= 60;
+  const baselineMlKgMin = olderAdult ? 2.7 : 3.5;
+  let mets: number;
+
+  if (activityType === "strength") {
+    // The Older Adult Compendium lists 4.3 MET60+ for multiple resistance exercises at varied resistance.
+    mets = olderAdult ? 4.3 : effort === "moderate" ? 3.5 : 6.0;
+  } else if (
+    (ageYears === null || ageYears === undefined || ageYears >= 18) &&
+    heightCm !== null && heightCm !== undefined && Number.isFinite(heightCm) && heightCm > 0 &&
+    steps !== null && steps !== undefined && Number.isInteger(steps) && steps > 0
+  ) {
+    // A published walk-test app used 0.414 × height (m) as a rough distance-per-step proxy.
+    // This approximates pace only; individual gait, terrain, and health conditions can differ.
+    const estimatedStepMeters = heightCm / 100 * 0.414;
+    const speedMph = steps * estimatedStepMeters / (durationMinutes / 60) / 1609.344;
+    mets = walkingMet(ageYears, speedMph);
+  } else if (olderAdult) {
+    // Effort-based fallback approximates moderate/brisk older-adult walking when pace is unavailable.
+    mets = effort === "moderate" ? 5.3 : 6.0;
+  } else {
+    mets = effort === "moderate" ? 4.0 : 7.0;
+  }
+
+  return Math.round((mets * baselineMlKgMin * bodyWeightKg / 200) * durationMinutes);
 }
 
 export function emptyTrackerSnapshot(): TrackerSnapshot {

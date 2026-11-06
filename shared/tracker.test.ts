@@ -141,11 +141,45 @@ describe("fitness snapshot sync", () => {
     });
   });
 
-  it("estimates gross calories from body weight, duration, activity, and effort", () => {
-    expect(estimateWorkoutCalories(82, 30, "cardio", "moderate")).toBe(172);
-    expect(estimateWorkoutCalories(82, 60, "strength", "vigorous")).toBe(517);
-    expect(estimateWorkoutCalories(null, 30, "cardio", "moderate")).toBeNull();
-    expect(estimateWorkoutCalories(82, null, "strength", "moderate")).toBeNull();
+  it("estimates adult gross calories from body weight, duration, activity, and effort", () => {
+    expect(estimateWorkoutCalories({ bodyWeightKg: 82, durationMinutes: 30, activityType: "cardio", effort: "moderate" })).toBe(172);
+    expect(estimateWorkoutCalories({ bodyWeightKg: 82, durationMinutes: 60, activityType: "strength", effort: "vigorous" })).toBe(517);
+    expect(estimateWorkoutCalories({ bodyWeightKg: null, durationMinutes: 30, activityType: "cardio", effort: "moderate" })).toBeNull();
+    expect(estimateWorkoutCalories({ bodyWeightKg: 82, durationMinutes: null, activityType: "strength", effort: "moderate" })).toBeNull();
+  });
+
+  it("uses Older Adult Compendium MET60+ values for age-60-plus resistance training", () => {
+    expect(estimateWorkoutCalories({
+      bodyWeightKg: 82,
+      durationMinutes: 30,
+      activityType: "strength",
+      effort: "moderate",
+      ageYears: 60,
+    })).toBe(143);
+  });
+
+  it("uses height, steps, and duration to estimate walking pace with age-appropriate MET tables", () => {
+    const inputs = {
+      bodyWeightKg: 82,
+      durationMinutes: 60,
+      activityType: "cardio" as const,
+      effort: "moderate" as const,
+      heightCm: 170,
+      steps: 6000,
+    };
+    expect(estimateWorkoutCalories({ ...inputs, ageYears: 30 })).toBe(258);
+    expect(estimateWorkoutCalories({ ...inputs, ageYears: 60 })).toBe(299);
+  });
+
+  it("uses the broad effort-based estimate when step-based walking inputs are incomplete", () => {
+    expect(estimateWorkoutCalories({
+      bodyWeightKg: 82,
+      durationMinutes: 30,
+      activityType: "cardio",
+      effort: "moderate",
+      ageYears: 60,
+      steps: 5000,
+    })).toBe(176);
   });
 
   it("allows cardio-only sessions but rejects strength sessions without exercises", () => {
